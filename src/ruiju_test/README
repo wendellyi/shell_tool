@@ -1,0 +1,102 @@
+批量插入帐号方案
+虚拟PBX字冠，用户号码范围，DID范围，IMS总机号码，AA总机号码
+虚拟PBX字冠，始终存在，是一个定值
+用户号码范围，始终存在，一定是一个区间
+DID范围，可能不存在，存在时为一个范围
+IMS总机号码，可能不存在，存在时为一个帐号
+AA总机号码，可能不存在，存在时为一个帐号（默认1000）
+
+操作涉及到的查询
+创建虚拟PBX
+select Max(Domain) from VirtualPbx
+insert into VirtualPbx(Domain,DomainName,DomainPrefix) values (115,'wendell399','399')
+
+新建路由组名称
+CREATE TABLE `RouteGroupName` (
+  `GroupNo` int(11) NOT NULL,
+  `GroupName` char(30) NOT NULL,
+  `Domain` int(11) NOT NULL default '0',
+  PRIMARY KEY  (`GroupNo`)
+) ENGINE=MyISAM DEFAULT CHARSET=latin1
+
+CREATE TABLE `RouteGroup` (
+  `GroupNo` int(11) NOT NULL,
+  `RouteName` char(32) NOT NULL,
+  `RouteLimit1` int(11) NOT NULL default '0',
+  `TimeLimit1` int(11) NOT NULL default '0',
+  `RouteLimit2` int(11) NOT NULL default '0',
+  `TimeLimit2` int(11) NOT NULL default '0',
+  `Sequence` int(11) NOT NULL default '0',
+  `CidRule` tinyint(4) unsigned NOT NULL default '1',
+  `Domain` int(11) NOT NULL default '0',
+  `RouteLimit3` int(11) NOT NULL default '0',
+  `TimeLimit3` int(11) NOT NULL default '0',
+  PRIMARY KEY  (`GroupNo`,`RouteName`)
+) ENGINE=MyISAM DEFAULT CHARSET=latin1
+
+insert into RouteGroupName values(24,'test',115)
+insert into RouteGroup values(24,'VM',0,0,0,0,0,1,115,0,0)
+
+更新此路由组中的路由条目
+select count(*) from RouteGroup  where RouteName='R0' and GroupNo=24
+select max(sequence) as nmax from RouteGroup where GroupNo=24
+insert into RouteGroup values(24,'R0',0,0,0,0,1,1,115,0,0)
+select Route.RouteName,CallerRegex,DialRegex,Route1,TimeLimit1,CallerChangeTemplate1,ChangeTemplate1,Route2,TimeLimit2,CallerChangeTemplate2,ChangeTemplate2,Route3,TimeLimit3,CallerChangeTemplate3,ChangeTemplate3,CidRule,DiversionNum1,DiversionNum2,DiversionNum3 from RouteGroup ,Route where RouteGroup.Domain =115 and  GroupNo=24 and RouteGroup.RouteName=Route.RouteName and RouteGroup.RouteName<>'VM' order by Sequence
+Update RouteGroup set Sequence=1 where RouteName='R0' and GroupNo=24
+
+新建路由计划名称
+CREATE TABLE `RoutePlanName` (
+  `PlanNo` int(11) NOT NULL default '0',
+  `PlanName` char(20) NOT NULL,
+  `Domain` int(11) NOT NULL default '0',
+  PRIMARY KEY  (`PlanNo`)
+) ENGINE=MyISAM DEFAULT CHARSET=latin1
+
+select MAX(PlanNo) from RoutePlanName
+select count(*) from RoutePlanName where Domain =115 and  PlanName='test'
+insert into RoutePlanName values(14,'test',115)
+
+向新建的路由计划名称中添加路由计划
+CREATE TABLE `RoutePlan` (
+  `PlanNo` int(11) NOT NULL,
+  `DateType` int(11) NOT NULL,
+  `BeginDate` char(16) NOT NULL,
+  `EndDate` char(16) NOT NULL,
+  `BeginTime` char(16) NOT NULL,
+  `EndTime` char(16) NOT NULL,
+  `RouteGroup` int(11) NOT NULL,
+  `Sequence` int(11) NOT NULL default '0',
+  `Domain` int(11) NOT NULL default '0',
+  PRIMARY KEY  (`BeginDate`,`EndDate`,`BeginTime`,`EndTime`,`RouteGroup`,`PlanNo`)
+) ENGINE=MyISAM DEFAULT CHARSET=latin1
+
+select GroupNo from RouteGroupName where Domain =115 and  GroupName='test'
+select count(*) from RoutePlan where Domain =115 and  PlanNo= 14 and BeginDate='0' and EndDate='6' and BeginTime='00:00:00' and EndTime='23:59:59'
+insert into RoutePlan values( 14,1,'0','6','00:00:00','23:59:59',24,0,115)
+select DateType,BeginDate,EndDate,BeginTime,EndTime,RouteGroup,Sequence,DateType from RoutePlan ,RouteGroupName where RouteGroupName.Domain =115 and  PlanNo=14 and RoutePlan.RouteGroup=RouteGroupName.GroupNo   order by Sequence
+select GroupName from RouteGroupName where Domain =115 and  GroupNo=24
+Delete from RoutePlan where Domain =115 and  PlanNo =14
+select GroupNo from RouteGroupName where Domain =115 and  GroupName='test'
+insert into RoutePlan values( 14,1,'0','6','00:00:00','23:59:59',24,0,115)
+            
+            
+添加新用户
+SELECT COUNT(*) FROM User WHERE UserType=0 OR UserType=10
+select count(*) from User where UserType=0 or UserType=19 or UserType=10
+select count(*) from fxono
+SELECT EnableMsg,EnableFax,EnableRec FROM PreceptList WHERE PreceptName=' none'
+select count(*) from User  where (User.UserType=0 OR User.UserType=10) and User.Precept in (select PreceptList.PreceptName from PreceptList where PreceptList.EnableMsg=1)
+select count(*) from User  where(User.UserType=0 OR User.UserType=10) and User.Precept in (select PreceptList.PreceptName from PreceptList where PreceptList.EnableFax=1)
+select count(*) from User  where(User.UserType=0 OR User.UserType=10) and User.Precept in (select PreceptList.PreceptName from PreceptList where PreceptList.EnableRec=1)
+SELECT COUNT(*) FROM User WHERE Domain =115 AND ShortCode='39912345'
+SELECT PlanNo FROM RoutePlanName WHERE Domain = 115 AND PlanName='test'
+SELECT PlanNo FROM RoutePlanName WHERE Domain = 115 AND PlanName='test'
+INSERT INTO  User (Domain, Level, UserID,ShortCode,UserAlias,Password,RegExpire,RouteGroup,Mobile,Precept,VOICETOEMAIL,EMAIL,BindPhone,Department,SelfSign,AccountPhone,     InternetLimit,    Account,EnableMobileCall, DID1,             DID2,DID3,             DID4,             DID5,DID6,             RouteGroup2,      SMSEnable,FuncVip,          FuncBreak,        FuncInsert,FuncListen,       FuncCallback,     FuncRecord,FuncAnonymous,    EnableMultiLine,  UserType,EnableIPA,        EnableDispatcher, EnableConsole) VALUES ( 115,    6,  '39912345', '39912345', '', '12345', 90,    14,  '', ' none',  1,  '', '', 'NONE', '', 0, 0, '', 0, Null, Null, Null, Null, Null, Null, 14, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+DELETE FROM UserDial WHERE UserID='39912345'
+INSERT INTO UserDial VALUES('(null)','39912345')
+SELECT * FROM User WHERE UserID = '39912345'
+
+sipt组网
+select count(*) from SipTAccount where name ='8676010060000'
+insert into SipTAccount(Name,User,Pass,Host,Port,NTX,Type,iface,Regist,BindExtend,OutboundProxy,AuthName,Encrypt,AuthDigest) values('8676010060000','8676010060000','8676010060000','imstest.jiahehecommunication.com',5061,0,'IMS','WAN',1,'','172.168.22.128:5061','8676010060000',0,0)
+select ID from SipTAccount where Name = '8676010060000'

@@ -6,15 +6,15 @@
 ARGS=$#
 SRC_CSV=$1          # 第一个参数为csv文件名
 SVN_LOG=$2          # 第二个参数为svn日志名
-TMP_CSV=$$.csv
+TMP_CSV=$3          # 第三个参数为新生成的目标
 
 function usage ()
 {
     printf "\tUsage:\n"
-    printf "\tfill_svn_ver.sh file.csv svn.log\n"
+    printf "\tfill_svn_ver.sh file.csv svn.log target.svn\n"
 }
 
-if [ 2 -ne $ARGS ]
+if [ 3 -ne $ARGS ]
 then
     usage
     exit
@@ -52,9 +52,10 @@ do
         while [ $svn_line_idx -lt $svn_line_count ]
         do
             svn_prog_name=$(echo ${arr_svn[$svn_line_idx]} | cut -d'=' -f1)
+            svn_prog_name=$(echo $svn_prog_name)
             svn_prog_version=$(echo ${arr_svn[$svn_line_idx]} | cut -d'=' -f2)
-            
-            if [ $csv_prog_name = $svn_prog_name ]
+            csv_prog_name=$(echo $csv_prog_name)
+            if [ "$csv_prog_name" = "$svn_prog_name" ]
             then
                 # 将实际的版本号赋值到指定的字段上（第5个字段）
                 echo "$csv_one_line" | awk -F "," -v ver=$(echo $svn_prog_version) \
